@@ -66,7 +66,7 @@ class ValidateVatNumber
      */
     public function countryCode()
     {
-        return $this->response->countryCode;
+        return $this->response ? $this->response->countryCode : null;
     }
 
     /**
@@ -76,7 +76,7 @@ class ValidateVatNumber
      */
     public function company()
     {
-        return ucwords(strtolower($this->response->name));
+        return $this->response ? ucwords(strtolower($this->response->name)) : null;
     }
 
     /**
@@ -86,7 +86,7 @@ class ValidateVatNumber
      */
     public function address()
     {
-        return explode("\n", ucwords(strtolower($this->response->address)));
+        return $this->response ? explode("\n", ucwords(strtolower($this->response->address))) : null;
     }
 
     /**
