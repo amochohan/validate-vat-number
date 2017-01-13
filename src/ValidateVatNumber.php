@@ -2,8 +2,9 @@
 
 namespace DrawMyAttention\ValidateVatNumber;
 
-use SoapClient;
 use SoapFault;
+use SoapClient;
+use DrawMyAttention\ValidateVatNumber\Exceptions\VatValidatorServiceUnavailableException;
 
 class ValidateVatNumber
 {
@@ -23,36 +24,28 @@ class ValidateVatNumber
     private $response = null;
 
     /**
-     * ValidateVatNumber constructor.
-     */
-    public function __construct()
-    {
-        $this->client = new SoapClient($this->serviceUrl);
-    }
-
-    /**
      * @param $vatNumber
      * @return bool
-     * @throws SoapFault
+     * @throws VatValidatorServiceUnavailableException
      */
-    public function validate($vatNumber)
+    public function isValid($vatNumber)
     {
-        $vatNumber = $this->cleanVatNumber($vatNumber);
-
-        $countryCode = substr($vatNumber, 0, 2);
-        $vatNumber = substr($vatNumber, 2);
-
         try {
+            $this->client = new SoapClient($this->serviceUrl);
+            $vatNumber = $this->cleanVatNumber($vatNumber);
 
-            $this->response = $result = $this->client->checkVat([
+            $countryCode = substr($vatNumber, 0, 2);
+            $vatNumber = substr($vatNumber, 2);
+
+            $this->response = $this->client->checkVat([
                 'countryCode' => $countryCode,
                 'vatNumber'   => $vatNumber,
             ]);
 
-            return $this;
+            return $this->response->valid;
 
         } catch (SoapFault $e) {
-            throw $e;
+            throw new VatValidatorServiceUnavailableException($e->getMessage(), $e->getCode());
         }
     }
 
@@ -67,23 +60,13 @@ class ValidateVatNumber
     }
 
     /**
-     * Is the VAT Number provided valid?
-     *
-     * @return bool
-     */
-    public function isValid()
-    {
-        return $this->response->valid;
-    }
-
-    /**
      * Get the country code the company is registered in.
      *
      * @return string
      */
     public function countryCode()
     {
-        return $this->response->countryCode;
+        return $this->response ? $this->response->countryCode : null;
     }
 
     /**
@@ -93,7 +76,7 @@ class ValidateVatNumber
      */
     public function company()
     {
-        return ucwords(strtolower($this->response->name));
+        return $this->response ? ucwords(strtolower($this->response->name)) : null;
     }
 
     /**
@@ -103,7 +86,7 @@ class ValidateVatNumber
      */
     public function address()
     {
-        return explode("\n", ucwords(strtolower($this->response->address)));
+        return $this->response ? explode("\n", ucwords(strtolower($this->response->address))) : null;
     }
 
     /**
